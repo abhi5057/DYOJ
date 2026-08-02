@@ -4,9 +4,27 @@ This document outlines the production deployment strategy for the DYOJ platform.
 
 ## 1. Cloud Provider Selection
 
-### Primary Provider: Amazon Web Services (AWS)
+### Day 0 / MVP Free Tier Deployment (No Credit Card Required)
 
-AWS is selected due to its mature ecosystem, vast global network (important for low-latency MFE delivery and global order tracking), and best-in-class managed services for our chosen tech stack (Kubernetes, Kafka, Redis, Postgres).
+Before scaling to AWS, you can deploy the entire architecture for free using providers that do not require an upfront credit card. This is perfect for MVP validation.
+
+1. **Frontend (React MFEs): Vercel or Netlify**
+    * **Steps:** Connect your GitHub repositories (`dyoj-ui-shell`, `dyoj-ui-catalog`, etc.) to Vercel. Vercel automatically detects Vite/React and deploys the static assets to a global CDN for free.
+
+2. **Backend (Spring Boot Microservices): Render**
+    * **Steps:** Render offers a free tier for Web Services. You can link your Spring Boot GitHub repos. Configure the build command (`./mvnw clean package -DskipTests`) and start command (`java -jar target/*.jar`). Render will run the Dockerized apps. *Note: Free tier web services spin down after inactivity, causing cold starts.*
+
+3. **Database (PostgreSQL): Neon.tech or Supabase**
+    * **Steps:** Neon offers serverless Postgres with a generous free tier (no CC required). You can create logical databases (`dyoj_user_db`, `dyoj_order_db`) within one Neon project. Copy the connection URIs to your Render environment variables.
+
+4. **Kafka & Redis: Upstash**
+    * **Steps:** Upstash provides Serverless Kafka and Serverless Redis with free tiers (pricing drops to zero when not used).
+    * **Redis:** Create a Redis database and copy the URL into your `.env.stage` for the Spring Boot services.
+    * **Kafka:** Create a Kafka cluster. Upstash provides the bootstrap servers and SASL credentials to plug directly into your Spring Boot `application.yml` for event messaging.
+
+### Future Enterprise Scaling: Amazon Web Services (AWS)
+
+Once the application gains traction and outgrows the free tiers, the architecture will migrate to AWS. AWS is selected due to its mature ecosystem, vast global network, and best-in-class managed services for our chosen tech stack.
 
 *> (Alternative: Google Cloud Platform (GCP) offers comparable services (GKE, Cloud SQL, Memorystore, Pub/Sub), but AWS MSK provides a more direct translation from our local Confluent Kafka setup without vendor lock-in.)
 
