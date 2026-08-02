@@ -57,11 +57,12 @@ Instead of a monolithic repo, the system is split into the following repositorie
 
 * **Idempotency:** All state-mutating POST/PUT endpoints use an `Idempotency-Key` header. `Redis` stores the key for 24h to return the cached response.
 * **Circuit Breakers & Retries:** Implement Resilience4j on all inter-service REST calls (e.g., between Order and Payment services). Configure Exponential Backoff and Jitter to prevent thundering herds.
-* **Database Schemas:**
-  * **Users:** `users` (id, email, password, role), `profiles` (name, addresses).
-  * **Catalog:** `designs` (id, user_id, image_url, weight, dimensions, calculated_price).
-  * **Orders:** `orders` (id, user_id, status, total, idempotency_key), `order_items`.
-  * **Tracking:** `shipments` (id, order_id, provider, awb_number, status_history).
+* **Database-per-Service Pattern:**
+    To ensure loose coupling and independent scalability, each microservice owns its data. They use separate databases (or isolated schemas/roles) within the PostgreSQL cluster.
+  * **User Service DB (`dyoj_user_db`):** `users` (id, email, password, role), `profiles` (name, addresses).
+  * **Catalog Service DB (`dyoj_catalog_db`):** `designs` (id, user_id, image_url, weight, dimensions, calculated_price).
+  * **Order Service DB (`dyoj_order_db`):** `orders` (id, user_id, status, total, idempotency_key), `order_items`.
+  * **Tracking Service DB (`dyoj_tracking_db`):** `shipments` (id, order_id, provider, awb_number, status_history).
 * **Observability:**
   * Micrometer with Prometheus endpoints in all Spring Boot apps.
   * Grafana dashboards for p50, p95, p99 latencies, CPU/Memory (Kubernetes Pods).
