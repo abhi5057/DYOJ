@@ -61,6 +61,7 @@ To run the backing services (Database, Message Broker, Cache) locally:
 
 You can now start developing and running the individual microservices against these local infrastructure components.
 
-## Architecture Documentation
+## Architecture & Deployment Documentation
 
-Please refer to `ARCHITECTURE.md` for a detailed breakdown of the system architecture, technology stack, data flow, and resiliency patterns.
+* Please refer to `ARCHITECTURE.md` and `DETAILED_ARCHITECTURE.md` for a detailed breakdown of the system architecture, technology stack, cross-platform UI flow, and resiliency patterns.
+* Please refer to `DEPLOYMENT.md` for the production cloud hosting strategy (AWS EKS, MSK, RDS, S3/CloudFront).

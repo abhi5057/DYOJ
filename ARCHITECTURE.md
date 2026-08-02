@@ -29,7 +29,7 @@ The application is built for extreme scalability, resiliency, and a fluid user e
 * **Caching & Rate Limiting:** Redis.
 * **Message Broker:** Apache Kafka.
 * **Payment Gateway:** Stripe (Recommended for security, ease of use, idempotency support, and extensive global webhooks). Alternative: Adyen (often better pricing at enterprise scale).
-* **Containerization & Orchestration:** Docker & Kubernetes (Helm charts for deployment).
+* **Containerization & Orchestration:** Docker & Kubernetes (Helm charts for deployment). *(See `DEPLOYMENT.md` for cloud specifics)*.
 
 ## 3. Microservices Split
 
