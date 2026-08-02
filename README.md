@@ -39,6 +39,8 @@ Configuration is managed via distinct environment files to allow for explicit co
 * `.env.stage`: Template for staging environments (secrets injected by CI/CD or Vault).
 * `.env.prod`: Template for production environments (secrets injected by CI/CD or Vault).
 
+**Important Note on Microservice Repositories:** Once the codebase is split as described in Section 1, this exact same environment configuration pattern (`.env.dev`, `.env.stage`, `.env.prod`, with `.env.*` files added to `.gitignore` where appropriate) **must be replicated** across all newly created individual frontend and backend microservice repositories.
+
 ## Local Development Setup
 
 To run the backing services (Database, Message Broker, Cache) locally:
