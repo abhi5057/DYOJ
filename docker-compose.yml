@@ -9,15 +9,14 @@ services:
     container_name: dyoj-postgres
     environment:
       POSTGRES_USER: dyoj_user
-      POSTGRES_PASSWORD: K9x!mP3vL8zXqR2w
-      POSTGRES_DB: dyoj_db
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dyoj_user -d dyoj_db"]
+      test: ["CMD-SHELL", "pg_isready -U dyoj_user -d dyoj_user_db"]
       interval: 5s
       timeout: 5s
       retries: 5

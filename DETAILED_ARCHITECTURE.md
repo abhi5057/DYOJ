@@ -94,8 +94,8 @@ This section details the layer-by-layer data stream flow, from a user action on 
 
 ### Layer 2: Gateway to Service (Routing & Security)
 
-1. **Gateway Interception:** Spring Cloud Gateway intercepts the request.
-2. **Authentication:** Validates the JWT token against the Identity Provider (or User Service).
+1. **Gateway Interception:** Spring Cloud Gateway intercepts the request and injects/passes a unique distributed `traceId`.
+2. **Authentication (Stateless):** Validates the JWT token locally using a cached JWKS (JSON Web Key Set), avoiding a network hop to the User Service.
 3. **Rate Limiting:** Checks Redis to ensure the user hasn't exceeded the rate limit.
 4. **Routing:** Forwards the authenticated request to the `dyoj-order-service`.
 
@@ -106,24 +106,24 @@ This section details the layer-by-layer data stream flow, from a user action on 
 3. **Transactional Outbox:**
     * Starts a database transaction.
     * Inserts the new order into the `orders` table.
-    * Inserts an `OrderCreatedEvent` into the `outbox` table.
+    * Inserts an `OrderCreatedEvent` into the `outbox` table, including the `traceId` for tracing continuation.
     * Commits the transaction.
 4. **Response:** Returns a 201 Created to the client. (Client UI optimistic update occurs here).
 
 ### Layer 4: Data to Event Broker (CDC & Queueing)
 
 1. **Debezium CDC:** A Kafka Connect process (Debezium) monitors the PostgreSQL WAL (Write-Ahead Log) for the `dyoj_order_db`.
-2. **Publishing:** Debezium detects the new row in the `outbox` table and publishes the `OrderCreatedEvent` to the Kafka topic `orders.events`.
+2. **Publishing:** Debezium detects the new row in the `outbox` table and publishes the `OrderCreatedEvent` to the Kafka topic `orders.events`, propagating the `traceId` into the Kafka message headers.
 
 ### Layer 5: Broker to Subscribers (Choreography)
 
-1. **Payment Service:** Subscribes to `orders.events`. Consumes the event, initiates a Stripe Payment Intent, and writes a `PaymentPendingEvent` to its own outbox.
+1. **Payment Service:** Subscribes to `orders.events`. Consumes the event (reading the `traceId`), initiates a Stripe Payment Intent, and writes a `PaymentPendingEvent` to its own outbox.
 2. **Notification Service:** Subscribes to `orders.events`. Consumes the event to notify the user.
 
 ### Layer 6: Service to Client (Realtime Update)
 
-1. **WebSocket Push:** The `dyoj-notification-service` maps the event to a specific user's active WebSocket connection.
-2. **Delivery:** Pushes a JSON payload `{"type": "ORDER_STATUS_CHANGED", "orderId": "123", "status": "PENDING_PAYMENT"}` to the client.
+1. **Fanout Backplane:** The specific `dyoj-notification-service` pod that consumed the Kafka event might not hold the user's active WebSocket connection. It publishes the payload to a **Redis Pub/Sub channel**.
+2. **WebSocket Push:** All `dyoj-notification-service` replicas listen to Redis. The replica holding the user's socket pushes the JSON payload `{"type": "ORDER_STATUS_CHANGED", "orderId": "123", "status": "PENDING_PAYMENT"}` to the client.
 3. **Client Invalidation:** The MFE receives the WebSocket message, publishes an event on the Frontend Event Bus, causing `React Query` to invalidate the `['orders']` cache and fetch fresh data, rendering the UI update.
 
 ```mermaid
@@ -136,15 +136,17 @@ sequenceDiagram
     participant NS as Notification Svc
 
     UI->>GW: POST /orders (Idempotency-Key)
-    GW->>OS: Route Request
+    GW->>GW: Local JWT Validation (JWKS)
+    GW->>OS: Route Request (with traceId)
     OS->>DB: BEGIN Tx
     OS->>DB: INSERT INTO orders
-    OS->>DB: INSERT INTO outbox (OrderCreatedEvent)
+    OS->>DB: INSERT INTO outbox (OrderCreatedEvent + traceId)
     OS->>DB: COMMIT Tx
     OS-->>UI: 201 Created (HTTP)
 
-    DB->>K: Debezium CDC reads WAL, publishes event
+    DB->>K: Debezium CDC publishes event (traceId in headers)
     K->>NS: Consume OrderCreatedEvent
+    NS->>NS: Fanout via Redis Pub/Sub
     NS-->>UI: WebSocket Push (State Update)
     UI->>UI: Invalidate Cache & Rerender
 ```

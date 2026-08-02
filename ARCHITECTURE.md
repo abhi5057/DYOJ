@@ -54,30 +54,31 @@ Instead of a monolithic repo, the system is split into the following repositorie
 3. **Payment:** `dyoj-payment-service` calls Stripe to create a PaymentIntent. UI completes payment. Stripe webhook notifies `dyoj-payment-service`, which emits a `PaymentSuccessEvent` to Kafka.
 4. **Order Fulfillment:** `dyoj-order-service` consumes `PaymentSuccessEvent` and updates order status. `dyoj-catalog-service` is notified to prepare manufacturing.
 5. **Shipment Tracking:** Once manufactured, tracking info is created in `dyoj-tracking-service`. This service polls the cargo provider. On status change, it emits a `TrackingUpdatedEvent` to Kafka.
-6. **Realtime UI Update:** `dyoj-notification-service` consumes `TrackingUpdatedEvent` and pushes the update to the UI via WebSockets. If the WebSocket connection is missed, the UI's `React Query` fetches the latest state upon focus/reconnect.
+6. **Realtime UI Update:** `dyoj-notification-service` consumes `TrackingUpdatedEvent` and pushes the update to the UI via WebSockets (via Redis Pub/Sub backplane). If the WebSocket connection is missed, the UI's `React Query` fetches the latest state upon focus/reconnect.
 
 ## 5. Resiliency & Backend Best Practices
 
-* **Idempotency:** All state-mutating POST/PUT endpoints use an `Idempotency-Key` header. `Redis` stores the key for 24h to return the cached response.
+* **Idempotency & Webhooks:** All state-mutating POST/PUT endpoints use an `Idempotency-Key` header (stored in Redis for 24h). Stripe webhooks verify Stripe's signature locally and are de-duplicated using the Stripe Event ID to prevent double-processing.
 * **Circuit Breakers & Retries:** Implement Resilience4j on all inter-service REST calls. Configure Exponential Backoff and Jitter to prevent thundering herds.
 * **Saga Pattern (Choreography):** Distributed transactions across Microservices (e.g., Order creation -> Payment processing -> Inventory/Manufacturing update) are managed via Kafka events rather than synchronous 2PC (Two-Phase Commit).
 * **Transactional Outbox Pattern:** To guarantee delivery of Kafka events when a database transaction commits, services write events to an `outbox` table in the same transaction as the business entity. Debezium (Kafka Connect) tails the PostgreSQL WAL to publish the events.
-* **Centralized Configuration & Security:** Use Spring Cloud Config for dynamic property management and OAuth2/OIDC via Spring Security for authenticating requests at the API Gateway before forwarding to downstream services.
+* **Centralized Configuration & Security:** Use Spring Cloud Config for dynamic property management. The API Gateway performs stateless JWT validation using a locally cached JWKS (JSON Web Key Set), minimizing extra network hops to the User Service.
 * **Database-per-Service Pattern:**
     To ensure loose coupling and independent scalability, each microservice owns its data. They use separate databases (or isolated schemas/roles) within the PostgreSQL cluster.
-  * **User Service DB (`dyoj_user_db`):** `users` (id, email, password, role), `profiles` (name, addresses).
+  * **User Service DB (`dyoj_user_db`):** `users` (id, email, password_hash, role), `profiles` (name, addresses).
   * **Catalog Service DB (`dyoj_catalog_db`):** `designs` (id, user_id, image_url, weight, dimensions, calculated_price).
   * **Order Service DB (`dyoj_order_db`):** `orders` (id, user_id, status, total, idempotency_key), `order_items`.
   * **Tracking Service DB (`dyoj_tracking_db`):** `shipments` (id, order_id, provider, awb_number, status_history).
+* **Schema Migrations:** Database schemas are managed independently by each microservice using Flyway (or Liquibase), applying versioned migrations automatically on startup.
 * **Observability:**
   * Micrometer with Prometheus endpoints in all Spring Boot apps.
   * Grafana dashboards for p50, p95, p99 latencies, CPU/Memory (Kubernetes Pods).
-  * Distributed Tracing (Sleuth/Micrometer Tracing + Zipkin) passing `traceId` across all microservices.
+  * Distributed Tracing (Sleuth/Micrometer Tracing + Zipkin) passing `traceId` across all REST calls and propagating through Kafka message headers.
 
 ## 6. Microfrontend UI & Realtime Communication
 
 * **Frontend Inter-MFE Communication:** Microfrontends (MFEs) communicate via a lightweight, client-side **Event Bus** (e.g., using CustomEvents or a shared Zustand store) for Pub/Sub messaging. This avoids tight coupling between UI components.
-* **Backend-Triggered Updates (WebSocket/SSE):** When a user action in one MFE requires an update in another (and triggers a POST API call), the Backend processes the state change and emits a Kafka event. The `dyoj-notification-service` consumes this and pushes a WebSocket/SSE message to the UI.
+* **Backend-Triggered Updates (WebSocket/SSE):** When a user action in one MFE requires an update in another (and triggers a POST API call), the Backend processes the state change and emits a Kafka event. The `dyoj-notification-service` consumes this and routes it via a **Redis Pub/Sub fanout backplane** so any replica holding the user's active socket can push the WebSocket/SSE message to the UI.
 * **Resilient State Revalidation:** If a client-side MFE misses a Pub/Sub event or a WebSocket message drops, the subsequent API responses (from the POST action) or UI focus events (via React Query) will actively invalidate the cache and fetch the latest state from the database. This guarantees UI eventual consistency even on unstable mobile networks.
 
 ## 7. Next Steps for Implementation
