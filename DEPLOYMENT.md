@@ -26,7 +26,7 @@ Before scaling to AWS, you can deploy the entire architecture for free using pro
 
 Once the application gains traction and outgrows the free tiers, the architecture will migrate to AWS. AWS is selected due to its mature ecosystem, vast global network, and best-in-class managed services for our chosen tech stack.
 
-*> (Alternative: Google Cloud Platform (GCP) offers comparable services (GKE, Cloud SQL, Memorystore, Pub/Sub), but AWS MSK provides a more direct translation from our local Confluent Kafka setup without vendor lock-in.)
+> (Alternative: Google Cloud Platform (GCP) offers comparable services (GKE, Cloud SQL, Memorystore, Pub/Sub), but AWS MSK provides a more direct translation from our local Confluent Kafka setup without vendor lock-in.)
 
 ## 2. Infrastructure as Code (IaC)
 
