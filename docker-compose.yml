@@ -9,7 +9,7 @@ services:
     container_name: dyoj-postgres
     environment:
       POSTGRES_USER: dyoj_user
-      POSTGRES_PASSWORD: dyoj_password
+      POSTGRES_PASSWORD: K9x!mP3vL8zXqR2w
       POSTGRES_DB: dyoj_db
     ports:
       - "5432:5432"

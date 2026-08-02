@@ -7,7 +7,10 @@ This document provides instructions on how to set up the DYOJ platform. Currentl
 To move from the current single repository (`DYOJ`) to a microservices layout, follow these steps:
 
 1. **Create New Repositories**: Create the following new repositories in your Git hosting provider (e.g., GitHub, GitLab):
-    * `dyoj-ui`
+    * `dyoj-ui-shell` (The host container for Microfrontends)
+    * `dyoj-ui-catalog` (MFE for uploading designs and browsing)
+    * `dyoj-ui-checkout` (MFE for cart and payment)
+    * `dyoj-ui-dashboard` (MFE for order tracking and user profile)
     * `dyoj-api-gateway`
     * `dyoj-user-service`
     * `dyoj-catalog-service`
@@ -18,8 +21,8 @@ To move from the current single repository (`DYOJ`) to a microservices layout, f
     * `dyoj-infra` (Optional: for docker-compose, helm charts, and global configurations)
 
 2. **Move the Frontend**:
-    * Initialize `dyoj-ui` using Vite or Create React App.
-    * Move any existing UI prototype files (e.g., `DYOJ Prototype.dc.html`, `image-slot.js`, `support.js`, `_ds`, `design_handoff_dyoj`) into a `docs/` or `prototypes/` folder within `dyoj-ui` for reference.
+    * Initialize the UI repositories (`dyoj-ui-shell`, `dyoj-ui-catalog`, etc.) using Vite with the Module Federation plugin.
+    * Ensure the Shell application is configured to load the distinct MFEs and manage the global Event Bus for client-side communication.
 
 3. **Setup Backend Services**:
     * Use [Spring Initializr](https://start.spring.io/) to bootstrap each of the backend services (`dyoj-user-service`, `dyoj-order-service`, etc.) using Java 17+ and Spring Boot 3.x.

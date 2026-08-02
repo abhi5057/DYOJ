@@ -35,14 +35,17 @@ The application is built for extreme scalability, resiliency, and a fluid user e
 
 Instead of a monolithic repo, the system is split into the following repositories (represented as directories here):
 
-1. **`dyoj-ui`**: The React-based frontend application (can be further split into `dyoj-ui-shell`, `dyoj-ui-checkout`, etc.).
-2. **`dyoj-api-gateway`**: Entry point for all clients. Handles cross-cutting concerns (Auth, Rate Limiting, CORS).
-3. **`dyoj-user-service`**: Manages User profiles, Vendor data, Authentication (JWT), and Authorization.
-4. **`dyoj-catalog-service`**: Manages uploaded designs, 3D printing feasibility validations, sizing, weight estimations, and pricing logic.
-5. **`dyoj-order-service`**: Manages cart, checkout, and order state machine. Handles **idempotent requests** to prevent duplicate orders.
-6. **`dyoj-payment-service`**: Integrates with Stripe. Processes webhooks and updates payment statuses securely.
-7. **`dyoj-tracking-service`**: Integrates with cargo/shipment APIs (e.g., BlueDart, FedEx). Polls or receives webhooks for real-time status. Falls back to manual AWB tracking if API is unavailable.
-8. **`dyoj-notification-service`**: Listens to Kafka events and pushes WebSocket events/emails to users.
+1. **`dyoj-ui-shell`**: The host container application for Microfrontends, managing global state and the Event Bus.
+2. **`dyoj-ui-catalog`**: MFE handling design uploads, feasibility checks, and browsing.
+3. **`dyoj-ui-checkout`**: MFE managing the cart, checkout process, and Stripe integration.
+4. **`dyoj-ui-dashboard`**: MFE for user profiles and realtime order tracking.
+5. **`dyoj-api-gateway`**: Entry point for all clients. Handles cross-cutting concerns (Auth, Rate Limiting, CORS).
+6. **`dyoj-user-service`**: Manages User profiles, Vendor data, Authentication (JWT), and Authorization.
+7. **`dyoj-catalog-service`**: Manages uploaded designs, 3D printing feasibility validations, sizing, weight estimations, and pricing logic.
+8. **`dyoj-order-service`**: Manages cart, checkout, and order state machine. Handles **idempotent requests** to prevent duplicate orders.
+9. **`dyoj-payment-service`**: Integrates with Stripe. Processes webhooks and updates payment statuses securely.
+10. **`dyoj-tracking-service`**: Integrates with cargo/shipment APIs (e.g., BlueDart, FedEx). Polls or receives webhooks for real-time status. Falls back to manual AWB tracking if API is unavailable.
+11. **`dyoj-notification-service`**: Listens to Kafka events and pushes WebSocket events/emails to users.
 
 ## 4. High-Level Architecture Flow
 
