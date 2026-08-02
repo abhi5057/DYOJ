@@ -1,1 +1,5 @@
 .env
+dyoj-ui-*/node_modules/
+dyoj-ui-*/dist/
+dyoj-*-service/target/
+dyoj-api-gateway/target/
