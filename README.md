@@ -31,20 +31,28 @@ To move from the current single repository (`DYOJ`) to a microservices layout, f
 4. **Manage Infrastructure**:
     * Move `docker-compose.yml` to the `dyoj-infra` repository (or keep it in a central documentation repo if preferred).
 
+## Environment Configuration
+
+Configuration is managed via distinct environment files to allow for explicit control across environments.
+
+* `.env.dev`: Pre-populated for local development convenience.
+* `.env.stage`: Template for staging environments (secrets injected by CI/CD or Vault).
+* `.env.prod`: Template for production environments (secrets injected by CI/CD or Vault).
+
 ## Local Development Setup
 
 To run the backing services (Database, Message Broker, Cache) locally:
 
 1. Ensure Docker and Docker Compose are installed.
 2. Navigate to the directory containing `docker-compose.yml`.
-3. Run the following command:
+3. Load the development environment variables and start the containers:
 
     ```bash
-    docker compose up -d
+    docker compose --env-file .env.dev up -d
     ```
 
 4. This will start:
-    * PostgreSQL on port 5432
+    * PostgreSQL on port 5432 (Databases configured per `init.sql`)
     * Redis on port 6379
     * Zookeeper on port 2181
     * Kafka on port 9092
